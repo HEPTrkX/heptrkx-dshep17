@@ -1,6 +1,41 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import os
+
+def choosegpu(root='gpu'):
+
+    stdout = os.popen('nvidia-smi').read().split('\n')
+    
+    device=0
+    status = []
+    for std in stdout:
+        spl = std.split()
+        if len(spl)==15:
+            mem = spl[8]
+            percent = spl[12]
+            status.append( { "device": "gpu%d"%device,
+                             "mem":mem,
+                             "percent":percent}
+            )
+            
+            device+=1
+
+    ## pick the GOU with the less memory allocated
+    status.sort( key = lambda v:v["mem"])
+
+    print status
+    gpu=status[0]["device"]
+    flags = os.environ.get('THEANO_FLAGS')
+    ## the theano flags are not really necessary, everything can be driven with CUDA_VISIBLE_DEVICES
+    #add_theano = 'device=%s'%gpu.replace('gpu',root)
+    #os.environ['THEANO_FLAGS']= flags+','+add_theano if flags else add_theano
+    add_theano = 'device=gpu'.replace('gpu',root)
+    os.environ['THEANO_FLAGS']= flags+','+add_theano if flags else add_theano
+    os.environ['CUDA_VISIBLE_DEVICES']=gpu.replace('gpu','')
+    print gpu
+
+        
 
 def score_function(y_true, y_pred):
     '''Compute a clustering score.
